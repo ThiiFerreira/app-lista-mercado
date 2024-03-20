@@ -34,6 +34,8 @@ class _screenListaState extends State<screenLista> {
       setState(() {
         produtos.add(novoProduto);
       });
+      _ordenarLista();
+      salvarListaProdutos();
     }
   }
 
@@ -61,13 +63,13 @@ class _screenListaState extends State<screenLista> {
           produto: produto,
           index: index,
           onProdutoAtualizado: _atualizarListaProdutos,
-          onProdutoRemovido: _removerProduto,
+          onProdutoRemovido: _removerProduto,        
         ),
       ),
     );
   }
 
-  Future<void> salvarListaProdutos() async {
+  Future<void> salvarListaProdutosBotao() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     // Transforma a lista de produtos em uma lista de mapas
@@ -83,6 +85,21 @@ class _screenListaState extends State<screenLista> {
     // ignore: use_build_context_synchronously
     AlertaSnackbar.mostrarSnackbar(
         context, "Lista de produtos salva com sucesso!");
+  }
+
+  Future<void> salvarListaProdutos() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    // Transforma a lista de produtos em uma lista de mapas
+    List<Map<String, dynamic>> produtosMapList = produtos.map((produto) {
+      return produto
+          .toMap(); // Supondo que a classe Produto tem um método toMap()
+    }).toList();
+
+    // Salva a lista de mapas no SharedPreferences
+    await prefs.setStringList(
+        'produtos', produtosMapList.map((map) => json.encode(map)).toList());
+
   }
 
   Future<void> carregarListaProdutos() async {
@@ -234,7 +251,7 @@ class _screenListaState extends State<screenLista> {
             tooltip: "Salvar",
             icon: const Icon(Icons.save),
             onPressed: () {
-              salvarListaProdutos();
+              salvarListaProdutosBotao();
             },
           ),
           IconButton(
@@ -397,4 +414,5 @@ class _screenListaState extends State<screenLista> {
       ),
     );
   }
+  
 }

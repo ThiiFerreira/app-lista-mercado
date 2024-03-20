@@ -42,6 +42,7 @@ class _screenAtualizaProdutoState extends State<screenAtualizaProduto> {
         nome: novoNome,
         preco: novoPreco,
         quantidade: novaQuantidade,
+        adicionado: widget.produto.adicionado
       );
 
       setState(() {
