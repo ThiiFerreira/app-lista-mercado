@@ -18,8 +18,36 @@ enum Ordenacao { crescente, decrescente }
 
 class _screenListaState extends State<screenLista> {
   List<Produto> produtos = [];
+  List<Produto> produtosFiltrados = [];
   bool loading = false;
+  bool boolProdutosZerados = true;
+  bool boolBarraPesquisa = true;
   Ordenacao opcaoOrdenacao = Ordenacao.crescente;
+  String produtosZerados = "Ocultar produtos zerados";
+  String barraPesquisa = "Ocultar barra de pesquisa";
+  TextEditingController _controllerPesquisa = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    carregarListaProdutos();
+    _controllerPesquisa.addListener(_filtrarProdutos);
+  }
+
+  @override
+  void dispose() {
+    _controllerPesquisa.dispose();
+    super.dispose();
+  }
+
+  void _filtrarProdutos() {
+    String query = _controllerPesquisa.text.toLowerCase();
+    setState(() {
+      produtosFiltrados = produtos.where((produto) {
+        return produto.nome.toLowerCase().contains(query);
+      }).toList();
+    });
+  }
 
   Future<void> _abrirTelaAdicionarProduto() async {
     // Navegue para a tela de adicionar um novo produto e aguarde o resultado
@@ -63,7 +91,7 @@ class _screenListaState extends State<screenLista> {
           produto: produto,
           index: index,
           onProdutoAtualizado: _atualizarListaProdutos,
-          onProdutoRemovido: _removerProduto,        
+          onProdutoRemovido: _removerProduto,
         ),
       ),
     );
@@ -99,7 +127,6 @@ class _screenListaState extends State<screenLista> {
     // Salva a lista de mapas no SharedPreferences
     await prefs.setStringList(
         'produtos', produtosMapList.map((map) => json.encode(map)).toList());
-
   }
 
   Future<void> carregarListaProdutos() async {
@@ -130,9 +157,8 @@ class _screenListaState extends State<screenLista> {
 
       setState(() {
         produtos = produtosCarregados;
-        setState(() {
-          loading = false;
-        });
+        produtosFiltrados = produtosCarregados;
+        loading = false;
       });
 
       // ignore: use_build_context_synchronously
@@ -140,9 +166,7 @@ class _screenListaState extends State<screenLista> {
           context, "Lista de produtos carregada com sucesso!");
     } else if (produtosJsonList == null) {
       setState(() {
-        setState(() {
-          loading = false;
-        });
+        loading = false;
       });
 
       // ignore: use_build_context_synchronously
@@ -214,31 +238,53 @@ class _screenListaState extends State<screenLista> {
   void apagarTodos() {
     setState(() {
       produtos.clear();
+      produtosFiltrados.clear();
     });
     // ignore: use_build_context_synchronously
-    AlertaSnackbar.mostrarSnackbar(context, "produtos apagados!");
+    AlertaSnackbar.mostrarSnackbar(context, "Produtos apagados!");
   }
 
   void removeTodosDoCarrinho() {
-    var listaAux = produtos;
-
-    for (Produto produto in listaAux) {
+    for (Produto produto in produtos) {
       if (produto.adicionado) {
         produto.adicionado = false;
       }
     }
 
     setState(() {
-      produtos = listaAux;
+      produtosFiltrados = produtos;
     });
 
     // ignore: use_build_context_synchronously
-    AlertaSnackbar.mostrarSnackbar(context, "Prodtuos removidos do carrinho!");
+    AlertaSnackbar.mostrarSnackbar(context, "Produtos removidos do carrinho!");
   }
 
-  void initState() {
-    super.initState();
-    carregarListaProdutos();
+  void removeProdutosZerados() {
+    setState(() {
+      boolProdutosZerados = !boolProdutosZerados;
+      if (boolProdutosZerados) {
+        produtosZerados = "Ocultar produtos zerados";
+      } else {
+        produtosZerados = "Mostrar produtos zerados";
+      }
+    });
+
+    // ignore: use_build_context_synchronously
+    AlertaSnackbar.mostrarSnackbar(context, "Configuração alterada!");
+  }
+
+  void removeBarraPesquisa() {
+    setState(() {
+      boolBarraPesquisa = !boolBarraPesquisa;
+      if (boolBarraPesquisa) {
+        barraPesquisa = "Ocultar barra de pesquisa";
+      } else {
+        barraPesquisa = "Mostrar barra de pesquisa";
+      }
+    });
+
+    // ignore: use_build_context_synchronously
+    AlertaSnackbar.mostrarSnackbar(context, "Configuração alterada!");
   }
 
   @override
@@ -250,54 +296,51 @@ class _screenListaState extends State<screenLista> {
           IconButton(
             tooltip: "Salvar",
             icon: const Icon(Icons.save),
-            onPressed: () {
-              salvarListaProdutosBotao();
-            },
+            onPressed: salvarListaProdutosBotao,
           ),
           IconButton(
             tooltip: "Ordenar",
             icon: opcaoOrdenacao == Ordenacao.crescente
-                ? Text("A-Z")
-                : Text("Z-A"),
+                ? const Text("A-Z")
+                : const Text("Z-A"),
             onPressed: () {
-              if (opcaoOrdenacao == Ordenacao.crescente) {
-                setState(() {
-                  opcaoOrdenacao = Ordenacao.decrescente;
-                });
-              } else {
-                setState(() {
-                  opcaoOrdenacao = Ordenacao.crescente;
-                });
-              }
+              setState(() {
+                opcaoOrdenacao = opcaoOrdenacao == Ordenacao.crescente
+                    ? Ordenacao.decrescente
+                    : Ordenacao.crescente;
+              });
               _ordenarLista();
             },
           ),
           PopupMenuButton<String>(
             onSelected: (String result) {
-              // Este bloco será executado quando o usuário selecionar uma opção no menu
               if (result == 'apagartodos') {
                 apagarTodos();
               } else if (result == 'removecarrinho') {
                 removeTodosDoCarrinho();
+              } else if (result == 'produtosZerados') {
+                removeProdutosZerados();
+              } else if (result == 'barraPesquisa') {
+                removeBarraPesquisa();
               }
-              // Adicione mais condições conforme necessário
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
               const PopupMenuItem<String>(
                 value: 'apagartodos',
-                child: ListTile(
-                  leading: Icon(Icons.delete),
-                  title: Text('apagar todos'),
-                ),
+                child: Text('Apagar todos'),
               ),
               const PopupMenuItem<String>(
                 value: 'removecarrinho',
-                child: ListTile(
-                  leading: Icon(Icons.remove_shopping_cart_rounded),
-                  title: Text('remover do carrinho'),
-                ),
+                child: Text('Remover todos do carrinho'),
               ),
-              // Adicione mais opções conforme necessário
+              PopupMenuItem<String>(
+                value: 'produtosZerados',
+                child: Text(produtosZerados),
+              ),
+              PopupMenuItem<String>(
+                value: 'barraPesquisa',
+                child: Text(barraPesquisa),
+              ),
             ],
           ),
         ],
@@ -306,64 +349,89 @@ class _screenListaState extends State<screenLista> {
           ? const Center(
               child: CircularProgressIndicator(),
             )
-          : produtos.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('Nenhum item na lista.'),
-                      SizedBox(height: 16),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          primary: Colors
-                              .white, // Define a cor de fundo do botão como branco
-                          onPrimary:
-                              Colors.black, // Define a cor do texto como preto
-                        ),
-                        onPressed: () {
-                          carregarListaProdutos();
-                        },
-                        child: Text('Recarregar'),
-                      )
-                    ],
-                  ),
-                )
-              : Center(
-                  child: ListView.builder(
-                    itemCount: produtos.length,
-                    itemBuilder: (context, index) {
-                      return Card(
-                        color: produtos[index].adicionado ? Colors.green : null,
-                        child: ListTile(
-                          title: Text(produtos[index].nome),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Quantidade: ${produtos[index].quantidade}'),
-                              Text(
-                                  'Unidade: R\$ ${produtos[index].preco.toStringAsFixed(2)}'),
-                              Text(
-                                  'Total: R\$ ${(produtos[index].preco * produtos[index].quantidade).toStringAsFixed(2)}'),
-                            ],
-                          ),
-                          onTap: () {
-                            _abrirTelaDetalhe(produtos[index], index);
-                          },
-                          trailing: ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  produtos[index].adicionado =
-                                      !produtos[index].adicionado;
-                                });
-                              },
-                              child: produtos[index].adicionado
-                                  ? Text("X")
-                                  : Text("OK")),
-                        ),
-                      );
-                    },
+          : Column(
+              children: [
+                if (boolBarraPesquisa) 
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: TextField(
+                    controller: _controllerPesquisa,
+                    decoration: const InputDecoration(
+                      labelText: 'Pesquisar',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                 ),
+                Expanded(
+                  child: produtosFiltrados.isEmpty
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Center(
+                              child: Text('Nenhum item na lista.'),
+                            ),
+                            SizedBox(height: 16),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors
+                                    .white, // Define a cor de fundo do botão como branco
+                                foregroundColor: Colors
+                                    .black, // Define a cor do texto como preto
+                              ),
+                              onPressed: () {
+                                carregarListaProdutos();
+                              },
+                              child: Text('Recarregar'),
+                            )
+                          ],
+                        )
+                      : ListView.builder(
+                          itemCount: produtosFiltrados.length,
+                          itemBuilder: (context, index) {
+                            if (!boolProdutosZerados &&
+                                produtosFiltrados[index].quantidade == 0) {
+                              return SizedBox.shrink();
+                            }
+                            return Card(
+                              color: produtosFiltrados[index].adicionado
+                                  ? Colors.green
+                                  : null,
+                              child: ListTile(
+                                title: Text(produtosFiltrados[index].nome),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                        'Quantidade: ${produtosFiltrados[index].quantidade}'),
+                                    Text(
+                                        'Unidade: R\$ ${produtosFiltrados[index].preco.toStringAsFixed(2)}'),
+                                    Text(
+                                        'Total: R\$ ${(produtosFiltrados[index].preco * produtosFiltrados[index].quantidade).toStringAsFixed(2)}'),
+                                  ],
+                                ),
+                                onTap: () {
+                                  _abrirTelaDetalhe(
+                                      produtosFiltrados[index], index);
+                                },
+                                trailing: ElevatedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      produtosFiltrados[index].adicionado =
+                                          !produtosFiltrados[index].adicionado;
+                                    });
+                                  },
+                                  child: produtosFiltrados[index].adicionado
+                                      ? const Text("X")
+                                      : const Text("OK"),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(8.0),
         color: Colors.grey[300],
@@ -393,7 +461,6 @@ class _screenListaState extends State<screenLista> {
                     color: Colors.green,
                   ),
                 ),
-                
                 Text(
                   'Restante: R\$ ${calcularTotalRestante().toStringAsFixed(2)}',
                   style: const TextStyle(
@@ -414,5 +481,4 @@ class _screenListaState extends State<screenLista> {
       ),
     );
   }
-  
 }

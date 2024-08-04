@@ -154,7 +154,7 @@ class _screenDetalheProdutoState extends State<screenDetalheProduto> {
                               );
                             },
                             style:
-                                ElevatedButton.styleFrom(primary: Colors.red),
+                                ElevatedButton.styleFrom(backgroundColor: Colors.red),
                             child: const Text('Deletar Produto'),
                           ),
                   ],
