@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lista_mercado/componentes/AlertaMensagem.dart';
 import 'package:lista_mercado/componentes/AlertaSnackbar.dart';
+import 'package:lista_mercado/componentes/CampoPreenchimento.dart';
 import 'package:lista_mercado/models/Produto.dart';
 import 'package:lista_mercado/screen/screenAdicionaProduto.dart';
 import 'package:lista_mercado/screen/screenDetalheProduto.dart';
@@ -18,35 +19,21 @@ enum Ordenacao { crescente, decrescente }
 
 class _screenListaState extends State<screenLista> {
   List<Produto> produtos = [];
-  List<Produto> produtosFiltrados = [];
   bool loading = false;
   bool boolProdutosZerados = true;
-  bool boolBarraPesquisa = true;
   Ordenacao opcaoOrdenacao = Ordenacao.crescente;
   String produtosZerados = "Ocultar produtos zerados";
-  String barraPesquisa = "Ocultar barra de pesquisa";
-  TextEditingController _controllerPesquisa = TextEditingController();
+  final pesquisaController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     carregarListaProdutos();
-    _controllerPesquisa.addListener(_filtrarProdutos);
   }
 
   @override
   void dispose() {
-    _controllerPesquisa.dispose();
     super.dispose();
-  }
-
-  void _filtrarProdutos() {
-    String query = _controllerPesquisa.text.toLowerCase();
-    setState(() {
-      produtosFiltrados = produtos.where((produto) {
-        return produto.nome.toLowerCase().contains(query);
-      }).toList();
-    });
   }
 
   Future<void> _abrirTelaAdicionarProduto() async {
@@ -157,7 +144,6 @@ class _screenListaState extends State<screenLista> {
 
       setState(() {
         produtos = produtosCarregados;
-        produtosFiltrados = produtosCarregados;
         loading = false;
       });
 
@@ -238,7 +224,6 @@ class _screenListaState extends State<screenLista> {
   void apagarTodos() {
     setState(() {
       produtos.clear();
-      produtosFiltrados.clear();
     });
     // ignore: use_build_context_synchronously
     AlertaSnackbar.mostrarSnackbar(context, "Produtos apagados!");
@@ -247,14 +232,11 @@ class _screenListaState extends State<screenLista> {
   void removeTodosDoCarrinho() {
     for (Produto produto in produtos) {
       if (produto.adicionado) {
-        produto.adicionado = false;
+        setState(() {
+          produto.adicionado = false;
+        });
       }
     }
-
-    setState(() {
-      produtosFiltrados = produtos;
-    });
-
     // ignore: use_build_context_synchronously
     AlertaSnackbar.mostrarSnackbar(context, "Produtos removidos do carrinho!");
   }
@@ -266,20 +248,6 @@ class _screenListaState extends State<screenLista> {
         produtosZerados = "Ocultar produtos zerados";
       } else {
         produtosZerados = "Mostrar produtos zerados";
-      }
-    });
-
-    // ignore: use_build_context_synchronously
-    AlertaSnackbar.mostrarSnackbar(context, "Configuração alterada!");
-  }
-
-  void removeBarraPesquisa() {
-    setState(() {
-      boolBarraPesquisa = !boolBarraPesquisa;
-      if (boolBarraPesquisa) {
-        barraPesquisa = "Ocultar barra de pesquisa";
-      } else {
-        barraPesquisa = "Mostrar barra de pesquisa";
       }
     });
 
@@ -320,8 +288,6 @@ class _screenListaState extends State<screenLista> {
                 removeTodosDoCarrinho();
               } else if (result == 'produtosZerados') {
                 removeProdutosZerados();
-              } else if (result == 'barraPesquisa') {
-                removeBarraPesquisa();
               }
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -337,10 +303,6 @@ class _screenListaState extends State<screenLista> {
                 value: 'produtosZerados',
                 child: Text(produtosZerados),
               ),
-              PopupMenuItem<String>(
-                value: 'barraPesquisa',
-                child: Text(barraPesquisa),
-              ),
             ],
           ),
         ],
@@ -351,20 +313,14 @@ class _screenListaState extends State<screenLista> {
             )
           : Column(
               children: [
-                if (boolBarraPesquisa) 
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextField(
-                    controller: _controllerPesquisa,
-                    decoration: const InputDecoration(
-                      labelText: 'Pesquisar',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
+                SizedBox(height: 8),
+                CampoPreenchimento(
+                    controlador: pesquisaController,
+                    rotulo: 'Pesquisar',
+                    icone: Icons.search),
+                SizedBox(height: 8),
                 Expanded(
-                  child: produtosFiltrados.isEmpty
+                  child: produtos.isEmpty
                       ? Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -387,41 +343,40 @@ class _screenListaState extends State<screenLista> {
                           ],
                         )
                       : ListView.builder(
-                          itemCount: produtosFiltrados.length,
+                          itemCount: produtos.length,
                           itemBuilder: (context, index) {
                             if (!boolProdutosZerados &&
-                                produtosFiltrados[index].quantidade == 0) {
+                                produtos[index].quantidade == 0) {
                               return SizedBox.shrink();
                             }
                             return Card(
-                              color: produtosFiltrados[index].adicionado
+                              color: produtos[index].adicionado
                                   ? Colors.green
                                   : null,
                               child: ListTile(
-                                title: Text(produtosFiltrados[index].nome),
+                                title: Text(produtos[index].nome),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                        'Quantidade: ${produtosFiltrados[index].quantidade}'),
+                                        'Quantidade: ${produtos[index].quantidade}'),
                                     Text(
-                                        'Unidade: R\$ ${produtosFiltrados[index].preco.toStringAsFixed(2)}'),
+                                        'Unidade: R\$ ${produtos[index].preco.toStringAsFixed(2)}'),
                                     Text(
-                                        'Total: R\$ ${(produtosFiltrados[index].preco * produtosFiltrados[index].quantidade).toStringAsFixed(2)}'),
+                                        'Total: R\$ ${(produtos[index].preco * produtos[index].quantidade).toStringAsFixed(2)}'),
                                   ],
                                 ),
                                 onTap: () {
-                                  _abrirTelaDetalhe(
-                                      produtosFiltrados[index], index);
+                                  _abrirTelaDetalhe(produtos[index], index);
                                 },
                                 trailing: ElevatedButton(
                                   onPressed: () {
                                     setState(() {
-                                      produtosFiltrados[index].adicionado =
-                                          !produtosFiltrados[index].adicionado;
+                                      produtos[index].adicionado =
+                                          !produtos[index].adicionado;
                                     });
                                   },
-                                  child: produtosFiltrados[index].adicionado
+                                  child: produtos[index].adicionado
                                       ? const Text("X")
                                       : const Text("OK"),
                                 ),
