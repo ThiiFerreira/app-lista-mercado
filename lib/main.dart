@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lista_mercado/screen/screenListCmFiltro.dart';
 import 'package:lista_mercado/screen/screenLista.dart';
 void main() {
   runApp(const MyApp());
@@ -22,7 +23,8 @@ class MyApp extends StatelessWidget {
           foregroundColor: Colors.white,
         ),
       ),
-      home: const screenLista(),
+      home: const screenListaCmFiltro(),
+      //home: const screenLista(),
     );
   }
 }

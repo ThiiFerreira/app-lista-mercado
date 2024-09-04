@@ -7,17 +7,11 @@ import 'package:lista_mercado/screen/screenAtualizaProduto.dart';
 // ignore: must_be_immutable
 class screenDetalheProduto extends StatefulWidget {
   late Produto produto;
-  final int index;
 
-  final Function(int, Produto) onProdutoAtualizado;
-  final Function(int) onProdutoRemovido;
 
   screenDetalheProduto({
     Key? key,
     required this.produto,
-    required this.index,
-    required this.onProdutoAtualizado,
-    required this.onProdutoRemovido,
   }) : super(key: key);
 
   @override
@@ -26,7 +20,7 @@ class screenDetalheProduto extends StatefulWidget {
 
 class _screenDetalheProdutoState extends State<screenDetalheProduto> {
   bool loadingDelete = false;
-  void _editarProduto(BuildContext context, int index) async {
+  void _editarProduto(BuildContext context) async {
     // Navegue para a tela de edição e aguarde o resultado (produto atualizado)
     final produtoAtualizado = await Navigator.push(
       context,
@@ -40,11 +34,6 @@ class _screenDetalheProdutoState extends State<screenDetalheProduto> {
       AlertaSnackbar.mostrarSnackbar(
           context, "Produto atualizado com sucesso!");
 
-      setState(() {
-        // Atualize o produto na lista usando o índice
-        widget.onProdutoAtualizado(index, produtoAtualizado);
-      });
-
       Navigator.pop(context, produtoAtualizado);
     }
   }
@@ -54,10 +43,9 @@ class _screenDetalheProdutoState extends State<screenDetalheProduto> {
       setState(() {
         loadingDelete = true;
       });
-      widget.onProdutoRemovido(widget.index);
       Navigator.of(context).pop();
 
-      Navigator.of(context).pop();
+      Navigator.pop(context,true);
       setState(() {
         loadingDelete = false;
       });
@@ -115,7 +103,7 @@ class _screenDetalheProdutoState extends State<screenDetalheProduto> {
                     ElevatedButton(
                       onPressed: () async {
                         // Navegue para a tela de edição e aguarde o resultado (produto atualizado)
-                        _editarProduto(context, widget.index);
+                        _editarProduto(context);
                       },
                       child: const Text('Editar Produto'),
                     ),

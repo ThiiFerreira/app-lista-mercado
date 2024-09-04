@@ -57,9 +57,21 @@ class _screenAtualizaProdutoState extends State<screenAtualizaProduto> {
     super.initState();
     _nomeController = TextEditingController(text: widget.produto.nome);
     _precoController =
-        TextEditingController(text: widget.produto.preco.toString());
+        TextEditingController(text: widget.produto.preco.toStringAsFixed(2));
     _quantidadeController =
         TextEditingController(text: widget.produto.quantidade.toString());
+    _precoController.addListener(_formatarPreco);
+  }
+  void _formatarPreco() {
+    String text = _precoController.text.replaceAll(RegExp(r'[^\d]'), '');
+
+    if (text.isNotEmpty) {
+      double value = double.parse(text) / 100;
+      _precoController.value = TextEditingValue(
+        text: value.toStringAsFixed(2),
+        selection: TextSelection.collapsed(offset: value.toStringAsFixed(2).length),
+      );
+    }
   }
 
   @override

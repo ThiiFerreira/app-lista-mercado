@@ -15,7 +15,32 @@ class _screenAdicionaProdutoState extends State<screenAdicionaProduto> {
   final _precoController = TextEditingController();
   final _quantidadeController = TextEditingController();
   bool loading = false;
-  
+
+  @override
+  void initState() {
+    super.initState();
+    _precoController.addListener(_formatarPreco);
+  }
+
+  @override
+  void dispose() {
+    _nomeController.dispose();
+    _precoController.dispose();
+    _quantidadeController.dispose();
+    super.dispose();
+  }
+
+  void _formatarPreco() {
+    String text = _precoController.text.replaceAll(RegExp(r'[^\d]'), '');
+
+    if (text.isNotEmpty) {
+      double value = double.parse(text) / 100;
+      _precoController.value = TextEditingValue(
+        text: value.toStringAsFixed(2),
+        selection: TextSelection.collapsed(offset: value.toStringAsFixed(2).length),
+      );
+    }
+  }
 
   Future<void> _salvarNovoProduto(BuildContext context) async {
     setState(() {
@@ -44,7 +69,6 @@ class _screenAdicionaProdutoState extends State<screenAdicionaProduto> {
         preco: preco,
         quantidade: quantidade,
       );
-
 
       setState(() {
         loading = false;
@@ -77,9 +101,8 @@ class _screenAdicionaProdutoState extends State<screenAdicionaProduto> {
               TextField(
                 controller: _precoController,
                 keyboardType: TextInputType.number,
-                decoration:
-                    const InputDecoration(labelText: 'Preço do Produto',  hintText: 'Ex: 1.99'),
-
+                decoration: const InputDecoration(
+                    labelText: 'Preço do Produto', hintText: 'Ex: 1.99'),
               ),
               TextField(
                 controller:

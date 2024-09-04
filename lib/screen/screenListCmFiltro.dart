@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lista_mercado/componentes/AlertaMensagem.dart';
 import 'package:lista_mercado/componentes/AlertaSnackbar.dart';
 import 'package:lista_mercado/models/Produto.dart';
@@ -7,32 +8,47 @@ import 'package:lista_mercado/screen/screenDetalheProduto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
-class screenLista extends StatefulWidget {
-  const screenLista({super.key});
+class screenListaCmFiltro extends StatefulWidget {
+  const screenListaCmFiltro({super.key});
 
   @override
-  State<screenLista> createState() => _screenListaState();
+  State<screenListaCmFiltro> createState() => _screenListaState();
 }
 
 enum Ordenacao { crescente, decrescente }
 
-class _screenListaState extends State<screenLista> {
+class _screenListaState extends State<screenListaCmFiltro> {
   List<Produto> produtos = [];
+  List<Produto> produtosFiltrados = [];
   bool loading = false;
   bool boolProdutosZerados = true;
+  bool boolBarraPesquisa = true;
+  bool boolBotaoOkOuQtd = true;
   Ordenacao opcaoOrdenacao = Ordenacao.crescente;
   String produtosZerados = "Ocultar produtos zerados";
+  String barraPesquisa = "Ocultar barra de pesquisa";
+  TextEditingController _controllerPesquisa = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     carregarListaProdutos();
+    _controllerPesquisa.addListener(_filtrarProdutos);
   }
-
 
   @override
   void dispose() {
+    _controllerPesquisa.dispose();
     super.dispose();
+  }
+
+  void _filtrarProdutos() {
+    String query = _controllerPesquisa.text.toLowerCase();
+    setState(() {
+      produtosFiltrados = produtos.where((produto) {
+        return produto.nome.toLowerCase().contains(query);
+      }).toList();
+    });
   }
 
   Future<void> _abrirTelaAdicionarProduto() async {
@@ -51,6 +67,8 @@ class _screenListaState extends State<screenLista> {
       _ordenarLista();
       salvarListaProdutos();
     }
+
+    carregarListaProdutos();
   }
 
   void _atualizarListaProdutos(int index, Produto produtoAtualizado) {
@@ -59,25 +77,40 @@ class _screenListaState extends State<screenLista> {
         produtos[index] = produtoAtualizado;
       }
     });
+
+    salvarListaProdutos();
   }
 
   void _removerProduto(int index) {
+    print(index);
     setState(() {
       if (index >= 0 && index < produtos.length) {
-        produtos.removeAt(index);
+        produtosFiltrados.removeAt(index);
       }
     });
   }
 
-  Future<void> _abrirTelaDetalhe(Produto produto, int index) async {
-    Navigator.push(
+  Future<void> _abrirTelaDetalhe(String nomeProduto) async {
+    int index = produtos.indexWhere((produto) => produto.nome == nomeProduto);
+
+    final retorno = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => screenDetalheProduto(
-          produto: produto,
-        ),
+        builder: (context) => screenDetalheProduto(produto: produtos[index]),
       ),
     );
+
+    if (retorno != null) {
+      if (retorno == true) {
+        setState(() {
+          _removerProduto(index);
+        });
+      } else {
+        _atualizarListaProdutos(index, retorno);
+        carregarListaProdutos();
+      }
+    } else {}
+    SystemChannels.textInput.invokeMethod('TextInput.hide');
   }
 
   Future<void> salvarListaProdutosBotao() async {
@@ -140,12 +173,13 @@ class _screenListaState extends State<screenLista> {
 
       setState(() {
         produtos = produtosCarregados;
+        produtosFiltrados = produtosCarregados;
         loading = false;
       });
 
       // ignore: use_build_context_synchronously
-      AlertaSnackbar.mostrarSnackbar(
-          context, "Lista de produtos carregada com sucesso!");
+      // AlertaSnackbar.mostrarSnackbar(
+      //     context, "Lista de produtos carregada com sucesso!");
     } else if (produtosJsonList == null) {
       setState(() {
         loading = false;
@@ -210,8 +244,12 @@ class _screenListaState extends State<screenLista> {
       if (opcaoOrdenacao == Ordenacao.crescente) {
         produtos.sort(
             (a, b) => a.nome.toUpperCase().compareTo(b.nome.toUpperCase()));
+        produtosFiltrados.sort(
+            (a, b) => a.nome.toUpperCase().compareTo(b.nome.toUpperCase()));
       } else {
         produtos.sort(
+            (a, b) => b.nome.toUpperCase().compareTo(a.nome.toUpperCase()));
+        produtosFiltrados.sort(
             (a, b) => b.nome.toUpperCase().compareTo(a.nome.toUpperCase()));
       }
     });
@@ -233,6 +271,7 @@ class _screenListaState extends State<screenLista> {
         });
       }
     }
+
     // ignore: use_build_context_synchronously
     AlertaSnackbar.mostrarSnackbar(context, "Produtos removidos do carrinho!");
   }
@@ -249,6 +288,26 @@ class _screenListaState extends State<screenLista> {
 
     // ignore: use_build_context_synchronously
     AlertaSnackbar.mostrarSnackbar(context, "Configuração alterada!");
+  }
+
+  void removeBarraPesquisa() {
+    setState(() {
+      boolBarraPesquisa = !boolBarraPesquisa;
+      if (boolBarraPesquisa) {
+        barraPesquisa = "Ocultar barra de pesquisa";
+      } else {
+        barraPesquisa = "Mostrar barra de pesquisa";
+      }
+    });
+
+    // ignore: use_build_context_synchronously
+    AlertaSnackbar.mostrarSnackbar(context, "Configuração alterada!");
+  }
+
+  void quantidade() {
+    setState(() {
+      boolBotaoOkOuQtd = !boolBotaoOkOuQtd;
+    });
   }
 
   @override
@@ -284,6 +343,10 @@ class _screenListaState extends State<screenLista> {
                 removeTodosDoCarrinho();
               } else if (result == 'produtosZerados') {
                 removeProdutosZerados();
+              } else if (result == 'barraPesquisa') {
+                removeBarraPesquisa();
+              } else if (result == 'botaoParaQuantidade') {
+                quantidade();
               }
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -299,6 +362,11 @@ class _screenListaState extends State<screenLista> {
                 value: 'produtosZerados',
                 child: Text(produtosZerados),
               ),
+              PopupMenuItem<String>(
+                value: 'botaoParaQuantidade',
+                child: Text(
+                    'Mudar para ${boolBotaoOkOuQtd ? "OK" : "Quantidade"}'),
+              ),
             ],
           ),
         ],
@@ -309,7 +377,18 @@ class _screenListaState extends State<screenLista> {
             )
           : Column(
               children: [
-                SizedBox(height: 8),
+                if (boolBarraPesquisa)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TextField(
+                      controller: _controllerPesquisa,
+                      decoration: const InputDecoration(
+                        labelText: 'Pesquisar',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
                 Expanded(
                   child: produtos.isEmpty
                       ? Column(
@@ -334,42 +413,111 @@ class _screenListaState extends State<screenLista> {
                           ],
                         )
                       : ListView.builder(
-                          itemCount: produtos.length,
+                          itemCount: produtosFiltrados.length,
                           itemBuilder: (context, index) {
                             if (!boolProdutosZerados &&
-                                produtos[index].quantidade == 0) {
+                                produtosFiltrados[index].quantidade == 0) {
                               return SizedBox.shrink();
                             }
                             return Card(
-                              color: produtos[index].adicionado
+                              color: produtosFiltrados[index].adicionado
                                   ? Colors.green
                                   : null,
                               child: ListTile(
-                                title: Text(produtos[index].nome),
+                                title: Text(produtosFiltrados[index].nome),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                            'R\$ ${produtosFiltrados[index].preco.toStringAsFixed(2)} - Qtd: ${produtosFiltrados[index].quantidade}'),
+                                      ],
+                                    ),
                                     Text(
-                                        'Quantidade: ${produtos[index].quantidade}'),
-                                    Text(
-                                        'Unidade: R\$ ${produtos[index].preco.toStringAsFixed(2)}'),
-                                    Text(
-                                        'Total: R\$ ${(produtos[index].preco * produtos[index].quantidade).toStringAsFixed(2)}'),
+                                        'Total: R\$ ${(produtosFiltrados[index].preco * produtosFiltrados[index].quantidade).toStringAsFixed(2)}'),
                                   ],
                                 ),
                                 onTap: () {
-                                  _abrirTelaDetalhe(produtos[index], index);
+                                  var nomeProduto =
+                                      produtosFiltrados[index].nome.toString();
+                                  _controllerPesquisa.clear();
+                                  _abrirTelaDetalhe(nomeProduto);
                                 },
-                                trailing: ElevatedButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      produtos[index].adicionado =
-                                          !produtos[index].adicionado;
-                                    });
-                                  },
-                                  child: produtos[index].adicionado
-                                      ? const Text("X")
-                                      : const Text("OK"),
+                                trailing: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (!boolBotaoOkOuQtd)
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            produtosFiltrados[index]
+                                                    .adicionado =
+                                                !produtosFiltrados[index]
+                                                    .adicionado;
+                                          });
+                                        },
+                                        child:
+                                            produtosFiltrados[index].adicionado
+                                                ? const Text("X")
+                                                : const Text("OK"),
+                                      )
+                                    else
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Flexible(
+                                              child: ElevatedButton(
+                                            onLongPress: () {
+                                              setState(() {
+                                                produtosFiltrados[index]
+                                                    .quantidade = 0;
+                                              });
+                                            },
+                                            onPressed: () {
+                                              setState(() {
+                                                if (produtosFiltrados[index]
+                                                        .quantidade >
+                                                    0) {
+                                                  produtosFiltrados[index]
+                                                      .quantidade--;
+                                                }
+                                              });
+                                            },
+                                            child: const Icon(Icons.remove),
+                                          )),
+                                          Flexible(
+                                            child: IconButton(
+                                              iconSize:
+                                                  20, // Reduz o tamanho do botão
+                                              icon: Text(
+                                                  produtosFiltrados[index]
+                                                      .quantidade
+                                                      .toString()),
+                                              onPressed: () {
+                                                setState(() {});
+                                              },
+                                            ),
+                                          ),
+                                          Flexible(
+                                              child: ElevatedButton(
+                                            onLongPress: () {
+                                              setState(() {
+                                                produtosFiltrados[index]
+                                                    .quantidade = 0;
+                                              });
+                                            },
+                                            onPressed: () {
+                                              setState(() {
+                                                produtosFiltrados[index]
+                                                    .quantidade++;
+                                              });
+                                            },
+                                            child: const Icon(Icons.add),
+                                          )),
+                                        ],
+                                      ),
+                                  ],
                                 ),
                               ),
                             );
@@ -421,7 +569,10 @@ class _screenListaState extends State<screenLista> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _abrirTelaAdicionarProduto,
+        onPressed: () {
+          _abrirTelaAdicionarProduto();
+          _controllerPesquisa.clear();
+        },
         tooltip: 'adiciona item',
         child: const Icon(Icons.add),
       ),
