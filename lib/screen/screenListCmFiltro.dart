@@ -23,7 +23,7 @@ class _screenListaState extends State<screenListaCmFiltro> {
   bool loading = false;
   bool boolProdutosZerados = true;
   bool boolBarraPesquisa = true;
-  bool boolBotaoOkOuQtd = true;
+  bool boolBotaoOkOuQtd = false;
   Ordenacao opcaoOrdenacao = Ordenacao.crescente;
   String produtosZerados = "Ocultar produtos zerados";
   String barraPesquisa = "Ocultar barra de pesquisa";
@@ -82,10 +82,15 @@ class _screenListaState extends State<screenListaCmFiltro> {
   }
 
   void _removerProduto(int index) {
-    print(index);
     setState(() {
       if (index >= 0 && index < produtos.length) {
+        var nomeProduto = produtosFiltrados[index].nome.toString();
+        print('Deletando filtrado ${produtosFiltrados[index].toMap()}');
         produtosFiltrados.removeAt(index);
+        if (nomeProduto == produtos[index].nome.toString()) {
+          print('Deletando original${produtos[index].toMap()}');
+          produtos.removeAt(index);
+        }
       }
     });
   }
