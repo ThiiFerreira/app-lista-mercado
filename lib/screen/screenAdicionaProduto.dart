@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lista_mercado/componentes/AlertaMensagem.dart';
-import 'package:lista_mercado/componentes/AlertaSnackbar.dart';
+//import 'package:lista_mercado/componentes/AlertaSnackbar.dart';
 import 'package:lista_mercado/models/Produto.dart';
 
 class screenAdicionaProduto extends StatefulWidget {
@@ -75,7 +75,7 @@ class _screenAdicionaProdutoState extends State<screenAdicionaProduto> {
       });
 
       // ignore: use_build_context_synchronously
-      AlertaSnackbar.mostrarSnackbar(context, "Produto criado com sucesso!");
+      //AlertaSnackbar.mostrarSnackbar(context, "Produto criado com sucesso!");
 
       // ignore: use_build_context_synchronously
       Navigator.pop(context, novoProduto);

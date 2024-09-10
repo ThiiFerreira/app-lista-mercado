@@ -24,9 +24,9 @@ class _screenListaState extends State<screenListaCmFiltro> {
   bool boolProdutosZerados = true;
   bool boolBarraPesquisa = true;
   bool boolBotaoOkOuQtd = false;
+  bool boolDetalhesCarrinho = false;
+  bool produtoAdicionado = false;
   Ordenacao opcaoOrdenacao = Ordenacao.crescente;
-  String produtosZerados = "Ocultar produtos zerados";
-  String barraPesquisa = "Ocultar barra de pesquisa";
   TextEditingController _controllerPesquisa = TextEditingController();
 
   @override
@@ -49,6 +49,29 @@ class _screenListaState extends State<screenListaCmFiltro> {
         return produto.nome.toLowerCase().contains(query);
       }).toList();
     });
+  }
+
+  void tiraFocoTeclado() {
+    FocusScope.of(context).unfocus();
+    SystemChannels.textInput.invokeMethod('TextInput.hide');
+    _controllerPesquisa.clear();
+  }
+
+  void vizualizarDetalhesCarrinho() {
+    setState(() {
+      boolDetalhesCarrinho = !boolDetalhesCarrinho;
+    });
+  }
+
+  void encontraProdutoAdicionado() {
+    for (var produto in produtos) {
+      if (produto.adicionado) {
+        setState(() {
+          produtoAdicionado = true;
+        });
+        break;
+      }
+    }
   }
 
   Future<void> _abrirTelaAdicionarProduto() async {
@@ -115,7 +138,7 @@ class _screenListaState extends State<screenListaCmFiltro> {
         carregarListaProdutos();
       }
     } else {}
-    SystemChannels.textInput.invokeMethod('TextInput.hide');
+    tiraFocoTeclado();
   }
 
   Future<void> salvarListaProdutosBotao() async {
@@ -204,10 +227,18 @@ class _screenListaState extends State<screenListaCmFiltro> {
         loading = false;
       });
     }
+    tiraFocoTeclado();
+    encontraProdutoAdicionado();
   }
 
   int calcularQuantidadeItens() {
-    return produtos.length;
+    int count = 0;
+    for (var produto in produtos) {
+      if (produto.quantidade > 0) {
+        count++;
+      }
+    }
+    return count;
   }
 
   double calcularTotal() {
@@ -276,7 +307,9 @@ class _screenListaState extends State<screenListaCmFiltro> {
         });
       }
     }
-
+    setState(() {
+      produtoAdicionado = false;
+    });
     // ignore: use_build_context_synchronously
     AlertaSnackbar.mostrarSnackbar(context, "Produtos removidos do carrinho!");
   }
@@ -284,11 +317,6 @@ class _screenListaState extends State<screenListaCmFiltro> {
   void removeProdutosZerados() {
     setState(() {
       boolProdutosZerados = !boolProdutosZerados;
-      if (boolProdutosZerados) {
-        produtosZerados = "Ocultar produtos zerados";
-      } else {
-        produtosZerados = "Mostrar produtos zerados";
-      }
     });
 
     // ignore: use_build_context_synchronously
@@ -298,11 +326,6 @@ class _screenListaState extends State<screenListaCmFiltro> {
   void removeBarraPesquisa() {
     setState(() {
       boolBarraPesquisa = !boolBarraPesquisa;
-      if (boolBarraPesquisa) {
-        barraPesquisa = "Ocultar barra de pesquisa";
-      } else {
-        barraPesquisa = "Mostrar barra de pesquisa";
-      }
     });
 
     // ignore: use_build_context_synchronously
@@ -352,25 +375,41 @@ class _screenListaState extends State<screenListaCmFiltro> {
                 removeBarraPesquisa();
               } else if (result == 'botaoParaQuantidade') {
                 quantidade();
+              } else if (result == 'restartLista') {
+                carregarListaProdutos();
+              } else if (result == 'vizualizarDetalhesCarrinho') {
+                vizualizarDetalhesCarrinho();
               }
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              PopupMenuItem<String>(
+                value: 'vizualizarDetalhesCarrinho',
+                child: Text(boolDetalhesCarrinho
+                    ? 'Detalhes carrinho'
+                    : 'Remover detalhes carrinho'),
+              ),
+              const PopupMenuItem<String>(
+                value: 'restartLista',
+                child: Text('Recarregar lista'),
+              ),
               const PopupMenuItem<String>(
                 value: 'apagartodos',
                 child: Text('Apagar todos'),
               ),
-              const PopupMenuItem<String>(
-                value: 'removecarrinho',
-                child: Text('Remover todos do carrinho'),
-              ),
+              if (produtoAdicionado)
+                PopupMenuItem<String>(
+                  value: 'removecarrinho',
+                  child: Text('Remover todos do carrinho'),
+                ),
               PopupMenuItem<String>(
                 value: 'produtosZerados',
-                child: Text(produtosZerados),
+                child: Text(boolProdutosZerados
+                    ? 'Ocultar produtos zerados'
+                    : 'Mostrar produtos zerados'),
               ),
               PopupMenuItem<String>(
                 value: 'botaoParaQuantidade',
-                child: Text(
-                    'Mudar para ${boolBotaoOkOuQtd ? "OK" : "Quantidade"}'),
+                child: Text('${boolBotaoOkOuQtd ? "Botao OK" : "Botoes +/-"}'),
               ),
             ],
           ),
@@ -429,14 +468,14 @@ class _screenListaState extends State<screenListaCmFiltro> {
                                   ? Colors.green
                                   : null,
                               child: ListTile(
-                                title: Text(produtosFiltrados[index].nome),
+                                title: Text('${produtosFiltrados[index].quantidade} - ${produtosFiltrados[index].nome}'),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
                                       children: [
                                         Text(
-                                            'R\$ ${produtosFiltrados[index].preco.toStringAsFixed(2)} - Qtd: ${produtosFiltrados[index].quantidade}'),
+                                            'R\$ ${produtosFiltrados[index].preco.toStringAsFixed(2)}'),
                                       ],
                                     ),
                                     Text(
@@ -446,7 +485,7 @@ class _screenListaState extends State<screenListaCmFiltro> {
                                 onTap: () {
                                   var nomeProduto =
                                       produtosFiltrados[index].nome.toString();
-                                  _controllerPesquisa.clear();
+                                  tiraFocoTeclado();
                                   _abrirTelaDetalhe(nomeProduto);
                                 },
                                 trailing: Column(
@@ -460,6 +499,7 @@ class _screenListaState extends State<screenListaCmFiltro> {
                                                     .adicionado =
                                                 !produtosFiltrados[index]
                                                     .adicionado;
+                                            encontraProdutoAdicionado();
                                           });
                                         },
                                         child:
@@ -531,52 +571,54 @@ class _screenListaState extends State<screenListaCmFiltro> {
                 ),
               ],
             ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(8.0),
-        color: Colors.grey[300],
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                    'Total: R\$ ${calcularTotal().toStringAsFixed(2)} - Qtd itens: ${calcularQuantidadeItens()}',
-                    style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'No carrinho: R\$ ${calcularTotalItensNoCarrinho().toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
+      bottomNavigationBar: boolDetalhesCarrinho
+          ? null
+          : Container(
+              padding: const EdgeInsets.all(8.0),
+              color: Colors.grey[300],
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                          'Total: R\$ ${calcularTotal().toStringAsFixed(2)} - itens: ${calcularQuantidadeItens()}',
+                          style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black)),
+                    ],
                   ),
-                ),
-                Text(
-                  'Restante: R\$ ${calcularTotalRestante().toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'No carrinho: R\$ ${calcularTotalItensNoCarrinho().toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                      Text(
+                        'Restante: R\$ ${calcularTotalRestante().toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           _abrirTelaAdicionarProduto();
-          _controllerPesquisa.clear();
+          tiraFocoTeclado();
         },
         tooltip: 'adiciona item',
         child: const Icon(Icons.add),
