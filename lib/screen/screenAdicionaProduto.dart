@@ -4,7 +4,8 @@ import 'package:lista_mercado/componentes/AlertaMensagem.dart';
 import 'package:lista_mercado/models/Produto.dart';
 
 class screenAdicionaProduto extends StatefulWidget {
-  const screenAdicionaProduto({super.key});
+  final String? nomeProduto;
+  const screenAdicionaProduto({super.key, this.nomeProduto});
 
   @override
   State<screenAdicionaProduto> createState() => _screenAdicionaProdutoState();
@@ -20,6 +21,9 @@ class _screenAdicionaProdutoState extends State<screenAdicionaProduto> {
   void initState() {
     super.initState();
     _precoController.addListener(_formatarPreco);
+    if (widget.nomeProduto != null) {
+      _nomeController.text = widget.nomeProduto.toString();
+    }
   }
 
   @override

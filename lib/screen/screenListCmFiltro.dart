@@ -4,6 +4,7 @@ import 'package:lista_mercado/componentes/AlertaMensagem.dart';
 import 'package:lista_mercado/componentes/AlertaSnackbar.dart';
 import 'package:lista_mercado/models/Produto.dart';
 import 'package:lista_mercado/screen/screenAdicionaProduto.dart';
+import 'package:lista_mercado/screen/screenAtualizaProduto.dart';
 import 'package:lista_mercado/screen/screenDetalheProduto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -74,12 +75,12 @@ class _screenListaState extends State<screenListaCmFiltro> {
     }
   }
 
-  Future<void> _abrirTelaAdicionarProduto() async {
+  Future<void> _abrirTelaAdicionarProduto(String produtoPesquisa) async {
     // Navegue para a tela de adicionar um novo produto e aguarde o resultado
     final novoProduto = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const screenAdicionaProduto(),
+        builder: (context) => screenAdicionaProduto(nomeProduto: produtoPesquisa),
       ),
     );
 
@@ -139,6 +140,30 @@ class _screenListaState extends State<screenListaCmFiltro> {
       }
     } else {}
     tiraFocoTeclado();
+  }
+
+  Future<void> _abrirTelaEditar(String nomeProduto) async {
+    int index = produtos.indexWhere((produto) => produto.nome == nomeProduto);
+
+    final retorno = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => screenAtualizaProduto(produto: produtos[index]),
+      ),
+    );
+
+    if (retorno != null) {
+      if (retorno == true) {
+        setState(() {
+          _removerProduto(index);
+        });
+      } else {
+        _atualizarListaProdutos(index, retorno);
+        carregarListaProdutos();
+      }
+    } else {}
+    tiraFocoTeclado();
+    
   }
 
   Future<void> salvarListaProdutosBotao() async {
@@ -304,6 +329,7 @@ class _screenListaState extends State<screenListaCmFiltro> {
       if (produto.adicionado) {
         setState(() {
           produto.adicionado = false;
+          produtoAdicionado = !produtoAdicionado;
         });
       }
     }
@@ -482,6 +508,11 @@ class _screenListaState extends State<screenListaCmFiltro> {
                                         'Total: R\$ ${(produtosFiltrados[index].preco * produtosFiltrados[index].quantidade).toStringAsFixed(2)}'),
                                   ],
                                 ),
+                                onLongPress: () {
+                                  var nomeProduto =
+                                      produtosFiltrados[index].nome.toString();
+                                  _abrirTelaEditar(nomeProduto);
+                                },
                                 onTap: () {
                                   var nomeProduto =
                                       produtosFiltrados[index].nome.toString();
@@ -617,7 +648,7 @@ class _screenListaState extends State<screenListaCmFiltro> {
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          _abrirTelaAdicionarProduto();
+          _abrirTelaAdicionarProduto(_controllerPesquisa.text);
           tiraFocoTeclado();
         },
         tooltip: 'adiciona item',
