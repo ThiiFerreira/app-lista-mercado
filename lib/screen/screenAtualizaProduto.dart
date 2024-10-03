@@ -21,7 +21,7 @@ class _screenAtualizaProdutoState extends State<screenAtualizaProduto> {
       loading = true;
     });
     // Obtenha os novos valores dos campos de edição
-    final novoNome = _nomeController.text;
+    final novoNome = _nomeController.text.toUpperCase();
     final novoPreco = double.tryParse(_precoController.text) ?? 0.0;
     final novaQuantidade = int.tryParse(_quantidadeController.text) ?? 0;
 

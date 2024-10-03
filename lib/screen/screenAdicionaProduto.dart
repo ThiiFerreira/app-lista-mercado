@@ -51,7 +51,7 @@ class _screenAdicionaProdutoState extends State<screenAdicionaProduto> {
       loading = true;
     });
 
-    final nome = _nomeController.text;
+    final nome = _nomeController.text.toUpperCase();
     final preco = double.tryParse(_precoController.text) ?? 0.0;
     final quantidade =
         int.tryParse(_quantidadeController.text) ?? 0; // Obtenha a quantidade

@@ -53,9 +53,11 @@ class _screenListaState extends State<screenListaCmFiltro> {
   }
 
   void tiraFocoTeclado() {
-    FocusScope.of(context).unfocus();
-    SystemChannels.textInput.invokeMethod('TextInput.hide');
-    _controllerPesquisa.clear();
+    setState(() {
+      FocusScope.of(context).unfocus();
+      SystemChannels.textInput.invokeMethod('TextInput.hide');
+      _controllerPesquisa.clear();
+    });
   }
 
   void vizualizarDetalhesCarrinho() {
@@ -80,7 +82,8 @@ class _screenListaState extends State<screenListaCmFiltro> {
     final novoProduto = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => screenAdicionaProduto(nomeProduto: produtoPesquisa),
+        builder: (context) =>
+            screenAdicionaProduto(nomeProduto: produtoPesquisa),
       ),
     );
 
@@ -163,7 +166,6 @@ class _screenListaState extends State<screenListaCmFiltro> {
       }
     } else {}
     tiraFocoTeclado();
-    
   }
 
   Future<void> salvarListaProdutosBotao() async {
@@ -494,14 +496,15 @@ class _screenListaState extends State<screenListaCmFiltro> {
                                   ? Colors.green
                                   : null,
                               child: ListTile(
-                                title: Text('${produtosFiltrados[index].quantidade} - ${produtosFiltrados[index].nome}'),
+                                title: Text(
+                                    '${produtosFiltrados[index].nome}'),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
                                       children: [
                                         Text(
-                                            'R\$ ${produtosFiltrados[index].preco.toStringAsFixed(2)}'),
+                                            'R\$ ${produtosFiltrados[index].preco.toStringAsFixed(2)} - qnt: ${produtosFiltrados[index].quantidade}'),
                                       ],
                                     ),
                                     Text(
@@ -511,6 +514,7 @@ class _screenListaState extends State<screenListaCmFiltro> {
                                 onLongPress: () {
                                   var nomeProduto =
                                       produtosFiltrados[index].nome.toString();
+                                  tiraFocoTeclado();
                                   _abrirTelaEditar(nomeProduto);
                                 },
                                 onTap: () {
