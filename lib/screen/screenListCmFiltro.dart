@@ -1,11 +1,11 @@
+import 'package:app_lista_mercado/componentes/AlertaMensagem.dart';
+import 'package:app_lista_mercado/componentes/AlertaSnackbar.dart';
+import 'package:app_lista_mercado/models/Produto.dart';
+import 'package:app_lista_mercado/screen/screenAdicionaProduto.dart';
+import 'package:app_lista_mercado/screen/screenAtualizaProduto.dart';
+import 'package:app_lista_mercado/screen/screenDetalheProduto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:lista_mercado/componentes/AlertaMensagem.dart';
-import 'package:lista_mercado/componentes/AlertaSnackbar.dart';
-import 'package:lista_mercado/models/Produto.dart';
-import 'package:lista_mercado/screen/screenAdicionaProduto.dart';
-import 'package:lista_mercado/screen/screenAtualizaProduto.dart';
-import 'package:lista_mercado/screen/screenDetalheProduto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 

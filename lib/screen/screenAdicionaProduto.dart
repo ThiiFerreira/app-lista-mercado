@@ -1,7 +1,7 @@
+import 'package:app_lista_mercado/componentes/AlertaMensagem.dart';
+import 'package:app_lista_mercado/models/Produto.dart';
 import 'package:flutter/material.dart';
-import 'package:lista_mercado/componentes/AlertaMensagem.dart';
 //import 'package:lista_mercado/componentes/AlertaSnackbar.dart';
-import 'package:lista_mercado/models/Produto.dart';
 
 class screenAdicionaProduto extends StatefulWidget {
   final String? nomeProduto;
