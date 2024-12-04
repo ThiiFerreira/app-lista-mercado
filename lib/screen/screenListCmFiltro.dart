@@ -29,11 +29,14 @@ class _screenListaState extends State<screenListaCmFiltro> {
   bool produtoAdicionado = false;
   Ordenacao opcaoOrdenacao = Ordenacao.crescente;
   TextEditingController _controllerPesquisa = TextEditingController();
+  TextEditingController _controllerCarteira = TextEditingController();
+  TextEditingController _dialogController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     carregarListaProdutos();
+    carregaValorCarteira();
     _controllerPesquisa.addListener(_filtrarProdutos);
   }
 
@@ -365,6 +368,56 @@ class _screenListaState extends State<screenListaCmFiltro> {
       boolBotaoOkOuQtd = !boolBotaoOkOuQtd;
     });
   }
+    // Método para salvar o valor no SharedPreferences
+  Future<void> salvaValorCarteira(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('carteira', value);
+  }
+
+  // Método para carregar o valor salvo
+  Future<void> carregaValorCarteira() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedValue = prefs.getString('carteira') ?? '';
+    setState(() {
+      _controllerCarteira.text = savedValue;
+    });
+  }
+
+  void mudarValorCarteira() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Digite o novo valor'),
+          content: TextField(
+            controller: _dialogController,
+            decoration: InputDecoration(hintText: "Novo valor"),
+            keyboardType:
+                TextInputType.number, // Define o tipo de teclado para números
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Fecha o diálogo sem fazer nada
+              },
+              child: Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _controllerCarteira.text = _dialogController
+                      .text; // Atualiza o valor de _controllerCarteira
+                  salvaValorCarteira(_controllerCarteira.text);
+                });
+                Navigator.of(context).pop(); // Fecha o diálogo
+              },
+              child: Text('Confirmar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -408,6 +461,9 @@ class _screenListaState extends State<screenListaCmFiltro> {
               } else if (result == 'vizualizarDetalhesCarrinho') {
                 vizualizarDetalhesCarrinho();
               }
+              else if (result == 'mudarValorCarteira') {
+                mudarValorCarteira();
+              }
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
               PopupMenuItem<String>(
@@ -438,6 +494,10 @@ class _screenListaState extends State<screenListaCmFiltro> {
               PopupMenuItem<String>(
                 value: 'botaoParaQuantidade',
                 child: Text('${boolBotaoOkOuQtd ? "Botao OK" : "Botoes +/-"}'),
+              ),
+              PopupMenuItem<String>(
+                value: 'mudarValorCarteira',
+                child: Text('Mudar valor da carteira'),
               ),
             ],
           ),
@@ -496,8 +556,7 @@ class _screenListaState extends State<screenListaCmFiltro> {
                                   ? Colors.green
                                   : null,
                               child: ListTile(
-                                title: Text(
-                                    '${produtosFiltrados[index].nome}'),
+                                title: Text('${produtosFiltrados[index].nome}'),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -623,6 +682,18 @@ class _screenListaState extends State<screenListaCmFiltro> {
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.black)),
+                      Row(
+                        children: [
+                          Text(
+                            'Carteira: ${_controllerCarteira.text}',
+                            style: TextStyle(
+                              fontSize: 18, // Tamanho do texto
+                              fontWeight: FontWeight.bold, // Estilo do texto
+                              color: calcularTotal() > (double.tryParse(_controllerCarteira.text) ?? 0.0) ? Colors.red : Colors.green, // Cor do texto
+                            ),
+                          ),
+                        ],
+                      )
                     ],
                   ),
                   const SizedBox(height: 8),
